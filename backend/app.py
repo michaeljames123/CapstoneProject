@@ -29,17 +29,16 @@ MAX_FILE_SIZE = 16 * 1024 * 1024  # 16MB
 
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['MAX_CONTENT_LENGTH'] = MAX_FILE_SIZE
-
+    
 # Initialize extensions
-# Allow configuring CORS via env; default to '*' and no credentials since JWT is sent in headers
-cors_origins = os.getenv('CORS_ORIGINS', '*')
-cors_credentials = os.getenv('CORS_CREDENTIALS', 'false').lower() == 'true'
+# CORS: always allow browser access to API routes from any origin.
+# This avoids preflight failures when calling the backend from the hosted frontend.
 CORS(
     app,
-    origins=cors_origins.split(',') if cors_origins != '*' else '*',
+    resources={r"/api/*": {"origins": "*"}},
     allow_headers=['Content-Type', 'Authorization'],
     methods=['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    supports_credentials=cors_credentials
+    supports_credentials=False,
 )
 jwt = JWTManager(app)
 
