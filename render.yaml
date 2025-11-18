@@ -1,0 +1,53 @@
+services:
+  - type: web
+    name: agridrone-backend
+    env: python
+    rootDir: backend
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn -w 2 --threads 2 --timeout 180 -k gthread -b 0.0.0.0:$PORT app:app
+    autoDeploy: true
+    healthCheckPath: /api/health
+    envVars:
+      - key: SECRET_KEY
+        generateValue: true
+      - key: JWT_SECRET_KEY
+        generateValue: true
+      - key: DATA_DIR
+        value: /data
+      - key: CORS_ORIGINS
+        # This will be updated automatically once the frontend is live
+        fromService:
+          type: static
+          name: agridrone-frontend
+          envVarKey: RENDER_EXTERNAL_URL
+      - key: ROBOFLOW_API_KEY
+        sync: false # set in Render dashboard
+      - key: ROBOFLOW_MODEL_ID
+        sync: false # set in Render dashboard
+    disks:
+      - name: persistent-data
+        mountPath: /data
+        sizeGB: 1
+
+  - type: static
+    name: agridrone-frontend
+    rootDir: frontend
+    buildCommand: npm ci && npm run build
+    publishPath: build
+    envVars:
+      - key: REACT_APP_API_URL
+        fromService:
+          type: web
+          name: agridrone-backend
+          envVarKey: RENDER_EXTERNAL_URL
+      - key: NODE_VERSION
+        value: 18
+    headers:
+      - path: /*
+        name: Cache-Control
+        value: no-store
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
