@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 
 type MeasureType = 'AREA' | 'DISTANCE' | 'POI';
 
@@ -37,6 +38,11 @@ function m2ToHa(m2: number) {
 
 const FieldEstimation: React.FC = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const measuresStorageKey = useMemo(
+    () => (user ? `field_measures_${user.id}` : 'field_measures_guest'),
+    [user]
+  );
   const mapEl = useRef<HTMLDivElement | null>(null);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
   const [loading, setLoading] = useState(true);
@@ -60,13 +66,15 @@ const FieldEstimation: React.FC = () => {
   const apiKey = useMemo(() => String(process.env.REACT_APP_GOOGLE_MAPS_API_KEY || ''), []);
 
   useEffect(() => {
-    const saved = localStorage.getItem('field_measures');
+    const saved = localStorage.getItem(measuresStorageKey);
     if (saved) {
       try {
         setMeasures(JSON.parse(saved));
+        return;
       } catch {}
     }
-  }, []);
+    setMeasures([]);
+  }, [measuresStorageKey]);
 
   useEffect(() => {
     if (!apiKey) {
@@ -279,7 +287,7 @@ const FieldEstimation: React.FC = () => {
       const m: Measure = { ...base, path, area_m2: area, perimeter_m: perim };
       const next = [m, ...measures];
       setMeasures(next);
-      localStorage.setItem('field_measures', JSON.stringify(next));
+      localStorage.setItem(measuresStorageKey, JSON.stringify(next));
       setSelectedMeasureId(m.id);
     } else if (selectedType === 'DISTANCE') {
       const path = ov.getPath().getArray().map((p: any) => ({ lat: p.lat(), lng: p.lng() }));
@@ -287,14 +295,14 @@ const FieldEstimation: React.FC = () => {
       const m: Measure = { ...base, path, distance_m: dist };
       const next = [m, ...measures];
       setMeasures(next);
-      localStorage.setItem('field_measures', JSON.stringify(next));
+      localStorage.setItem(measuresStorageKey, JSON.stringify(next));
       setSelectedMeasureId(m.id);
     } else if (selectedType === 'POI') {
       const pos = ov.getPosition();
       const m: Measure = { ...base, point: { lat: pos.lat(), lng: pos.lng() } };
       const next = [m, ...measures];
       setMeasures(next);
-      localStorage.setItem('field_measures', JSON.stringify(next));
+      localStorage.setItem(measuresStorageKey, JSON.stringify(next));
       setSelectedMeasureId(m.id);
     }
   }
@@ -313,7 +321,7 @@ const FieldEstimation: React.FC = () => {
     }
     const next = measures.filter(m => m.id !== id);
     setMeasures(next);
-    localStorage.setItem('field_measures', JSON.stringify(next));
+    localStorage.setItem(measuresStorageKey, JSON.stringify(next));
     setSelectedMeasureId(null);
     if (currentOverlayRef.current) {
       currentOverlayRef.current.setMap(null);
