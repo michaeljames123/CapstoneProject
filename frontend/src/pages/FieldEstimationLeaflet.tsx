@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom';
 import L, { LatLng, LeafletMouseEvent, Map as LeafletMap, LayerGroup } from 'leaflet';
 import api from '../api/config';
+import { useAuth } from '../contexts/AuthContext';
 
 type MeasureType = 'AREA' | 'DISTANCE' | 'POI';
 
@@ -101,6 +102,11 @@ function getTileUrl(type: 'roadmap' | 'satellite') {
 
 const FieldEstimationLeaflet: React.FC = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const measuresStorageKey = useMemo(
+    () => (user ? `field_measures_${user.id}` : 'field_measures_guest'),
+    [user]
+  );
   const mapEl = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<LeafletMap | null>(null);
   const tileLayerRef = useRef<L.TileLayer | null>(null);
@@ -131,14 +137,16 @@ const FieldEstimationLeaflet: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const saved = localStorage.getItem('field_measures');
+    const saved = localStorage.getItem(measuresStorageKey);
     if (saved) {
       try {
         const parsed: Measure[] = JSON.parse(saved);
         setMeasures(parsed);
+        return;
       } catch {}
     }
-  }, []);
+    setMeasures([]);
+  }, [measuresStorageKey]);
 
   useEffect(() => {
     if (!mapEl.current || mapRef.current) return;
@@ -414,7 +422,7 @@ const FieldEstimationLeaflet: React.FC = () => {
   const persistMeasures = (next: Measure[]) => {
     setMeasures(next);
     try {
-      localStorage.setItem('field_measures', JSON.stringify(next));
+      localStorage.setItem(measuresStorageKey, JSON.stringify(next));
     } catch {}
   };
 
