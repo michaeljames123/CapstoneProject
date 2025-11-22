@@ -29,17 +29,16 @@ MAX_FILE_SIZE = 16 * 1024 * 1024  # 16MB
 
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['MAX_CONTENT_LENGTH'] = MAX_FILE_SIZE
-
+    
 # Initialize extensions
-# Allow configuring CORS via env; default to '*' and no credentials since JWT is sent in headers
-cors_origins = os.getenv('CORS_ORIGINS', '*')
-cors_credentials = os.getenv('CORS_CREDENTIALS', 'false').lower() == 'true'
+# CORS: always allow browser access to API routes from any origin.
+# This avoids preflight failures when calling the backend from the hosted frontend.
 CORS(
     app,
-    origins=cors_origins.split(',') if cors_origins != '*' else '*',
+    resources={r"/api/*": {"origins": "*"}},
     allow_headers=['Content-Type', 'Authorization'],
     methods=['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    supports_credentials=cors_credentials
+    supports_credentials=False,
 )
 jwt = JWTManager(app)
 
@@ -49,7 +48,7 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 # Roboflow API configuration  
 ROBOFLOW_API_URL = "https://serverless.roboflow.com"
 ROBOFLOW_API_KEY = os.getenv('ROBOFLOW_API_KEY')
-ROBOFLOW_MODEL_ID = os.getenv('ROBOFLOW_MODEL_ID')
+ROBOFLOW_MODEL_ID = "agridroneinsightdetection-zcptl/4"  # Always use v4 model for consistent results
 ROBOFLOW_CONFIDENCE = int(os.getenv('ROBOFLOW_CONFIDENCE', '50'))
 ROBOFLOW_OVERLAP = int(os.getenv('ROBOFLOW_OVERLAP', '30'))
 ROBOFLOW_IMAGE_SIZE = int(os.getenv('ROBOFLOW_IMAGE_SIZE', '2048'))
@@ -270,6 +269,9 @@ def draw_predictions_on_image(image_path, predictions, output_path):
             'disease corn field area': (255, 255, 0),         # Yellow - for disease areas  
             'damage-pest corn field area': (255, 0, 0),       # Red - for damage/pest areas
             'damage pest corn field area': (255, 0, 0),       # Red - alternative naming
+            'downy mildew disease': (255, 171, 0),
+            'northern corn leaf blight disease': (0, 128, 255),
+            'southern corn leaf blight disease': (255, 128, 0),
             'default': (0, 255, 255)  # Cyan for unknown
         }
         
@@ -279,6 +281,9 @@ def draw_predictions_on_image(image_path, predictions, output_path):
             'disease corn field area': (200, 200, 0),         # Dark yellow outline
             'damage-pest corn field area': (180, 0, 0),       # Dark red outline
             'damage pest corn field area': (180, 0, 0),       # Dark red outline
+            'downy mildew disease': (200, 134, 0),
+            'northern corn leaf blight disease': (0, 90, 180),
+            'southern corn leaf blight disease': (180, 90, 0),
             'default': (0, 180, 180)  # Dark cyan outline
         }
         
@@ -351,12 +356,11 @@ def draw_predictions_on_image(image_path, predictions, output_path):
                             label_width = len(label) * 10  # Bigger default size
                             label_height = 16
                         
-                        # Position label at top-left of polygon
-                        min_x = min(p[0] for p in polygon_points)
-                        min_y = min(p[1] for p in polygon_points)
-                        
-                        label_x = max(5, min_x)
-                        label_y = max(5, min_y - label_height - 5)  # Above polygon
+                        # Position label around polygon centroid and clamp to image bounds
+                        label_x = center_x - label_width // 2
+                        label_y = center_y - label_height // 2
+                        label_x = max(5, min(label_x, img_width - label_width - 5))
+                        label_y = max(5, min(label_y, img_height - label_height - 5))
                         
                         # Draw prominent label background like Roboflow
                         padding = 6
@@ -367,14 +371,14 @@ def draw_predictions_on_image(image_path, predictions, output_path):
                             label_y + label_height + padding
                         ]
                         
-                        # Black background with outline color border
-                        draw.rectangle(bg_rect, fill=(0, 0, 0), outline=outline_color, width=2)
+                        # Class-colored background with black border
+                        draw.rectangle(bg_rect, fill=fill_color, outline=(0, 0, 0), width=2)
                         
-                        # Draw bold white text like Roboflow
+                        # Draw bold black text like Roboflow
                         if font:
-                            draw.text((label_x, label_y), label, fill=(255, 255, 255), font=font)
+                            draw.text((label_x, label_y), label, fill=(0, 0, 0), font=font)
                         else:
-                            draw.text((label_x, label_y), label, fill=(255, 255, 255))
+                            draw.text((label_x, label_y), label, fill=(0, 0, 0))
                     
                     print(f"Drew segmentation mask with {len(polygon_points)} points")
                 else:
@@ -554,8 +558,9 @@ def analyze_image():
         # Process image with Roboflow API
         try:
             print(f"Processing image: {file_path}")
-            print(f"Model ID: {os.getenv('ROBOFLOW_MODEL_ID')}")
-            print(f"API Key: {os.getenv('ROBOFLOW_API_KEY')[:10]}...")
+            print(f"Model ID constant (ROBOFLOW_MODEL_ID): {ROBOFLOW_MODEL_ID}")
+            print(f"Model ID env (ROBOFLOW_MODEL_ID): {os.getenv('ROBOFLOW_MODEL_ID')}")
+            print(f"API Key: {str(ROBOFLOW_API_KEY)[:10]}...")
             
             # Check if file exists
             if not os.path.exists(file_path):
@@ -617,6 +622,7 @@ def analyze_image():
             response_data = {
                 'message': 'Analysis completed successfully',
                 'record_id': record_id,
+                'model_id_used': ROBOFLOW_MODEL_ID,
                 'analysis_result': result,
                 'original_image_url': f"/api/uploads/{unique_filename}",
                 'annotated_image_url': f"/api/uploads/{annotated_filename}" if annotated_image_path else None,

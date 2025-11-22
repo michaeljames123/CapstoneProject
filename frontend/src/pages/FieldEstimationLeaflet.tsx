@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom';
 import L, { LatLng, LeafletMouseEvent, Map as LeafletMap, LayerGroup } from 'leaflet';
 import api from '../api/config';
+import { useAuth } from '../contexts/AuthContext';
 
 type MeasureType = 'AREA' | 'DISTANCE' | 'POI';
 
@@ -101,6 +102,11 @@ function getTileUrl(type: 'roadmap' | 'satellite') {
 
 const FieldEstimationLeaflet: React.FC = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const measuresStorageKey = useMemo(
+    () => (user ? `field_measures_${user.id}` : 'field_measures_guest'),
+    [user]
+  );
   const mapEl = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<LeafletMap | null>(null);
   const tileLayerRef = useRef<L.TileLayer | null>(null);
@@ -118,6 +124,7 @@ const FieldEstimationLeaflet: React.FC = () => {
   const [selectedType, setSelectedType] = useState<MeasureType>('AREA');
   const [isDrawing, setIsDrawing] = useState(false);
   const [isMeasureDrawerOpen, setIsMeasureDrawerOpen] = useState(false);
+  const [isHistoryDrawerOpen, setIsHistoryDrawerOpen] = useState(true);
   const [measureName, setMeasureName] = useState('');
   const [description, setDescription] = useState('');
   const [group, setGroup] = useState('');
@@ -130,14 +137,16 @@ const FieldEstimationLeaflet: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const saved = localStorage.getItem('field_measures');
+    const saved = localStorage.getItem(measuresStorageKey);
     if (saved) {
       try {
         const parsed: Measure[] = JSON.parse(saved);
         setMeasures(parsed);
+        return;
       } catch {}
     }
-  }, []);
+    setMeasures([]);
+  }, [measuresStorageKey]);
 
   useEffect(() => {
     if (!mapEl.current || mapRef.current) return;
@@ -413,7 +422,7 @@ const FieldEstimationLeaflet: React.FC = () => {
   const persistMeasures = (next: Measure[]) => {
     setMeasures(next);
     try {
-      localStorage.setItem('field_measures', JSON.stringify(next));
+      localStorage.setItem(measuresStorageKey, JSON.stringify(next));
     } catch {}
   };
 
@@ -574,83 +583,95 @@ const FieldEstimationLeaflet: React.FC = () => {
         <div className="px-4 py-3 border-b flex items-center justify-between">
           <div className="text-lg font-semibold text-gray-900">Field Estimation</div>
         </div>
-        <div className="px-4 pt-4 space-y-3">
-          <div>
-            <label className="block text-xs text-gray-500 mb-1">Measure name</label>
-            <input value={measureName} onChange={(e) => setMeasureName(e.target.value)} className="w-full input-field" placeholder="Name" />
-          </div>
-          <div>
-            <label className="block text-xs text-gray-500 mb-1">Description</label>
-            <input value={description} onChange={(e) => setDescription(e.target.value)} className="w-full input-field" placeholder="Description" />
-          </div>
-          <div>
-            <label className="block text-xs text-gray-500 mb-1">Group</label>
-            <input value={group} onChange={(e) => setGroup(e.target.value)} className="w-full input-field" placeholder="Group" />
-          </div>
-          <div className="grid grid-cols-2 gap-3 text-sm bg-gray-50 p-3 rounded-lg">
+        <div className="flex-1 overflow-y-auto">
+          <div className="px-4 pt-4 space-y-3">
             <div>
-              <div className="text-gray-500">Area</div>
-              <div className="font-semibold text-gray-900">{areaM2 ? `${m2ToHa(areaM2).toFixed(3)} ha` : '-'}</div>
+              <label className="block text-xs text-gray-500 mb-1">Measure name</label>
+              <input value={measureName} onChange={(e) => setMeasureName(e.target.value)} className="w-full input-field" placeholder="Name" />
             </div>
             <div>
-              <div className="text-gray-500">Perimeter</div>
-              <div className="font-semibold text-gray-900">{perimeterM ? `${metersToKm(perimeterM).toFixed(3)} km` : '-'}</div>
+              <label className="block text-xs text-gray-500 mb-1">Description</label>
+              <input value={description} onChange={(e) => setDescription(e.target.value)} className="w-full input-field" placeholder="Description" />
             </div>
             <div>
-              <div className="text-gray-500">Distance</div>
-              <div className="font-semibold text-gray-900">{distanceM ? `${metersToKm(distanceM).toFixed(3)} km` : '-'}</div>
+              <label className="block text-xs text-gray-500 mb-1">Group</label>
+              <input value={group} onChange={(e) => setGroup(e.target.value)} className="w-full input-field" placeholder="Group" />
+            </div>
+            <div className="grid grid-cols-2 gap-3 text-sm bg-gray-50 p-3 rounded-lg">
+              <div>
+                <div className="text-gray-500">Area</div>
+                <div className="font-semibold text-gray-900">{areaM2 ? `${m2ToHa(areaM2).toFixed(3)} ha` : '-'}</div>
+              </div>
+              <div>
+                <div className="text-gray-500">Perimeter</div>
+                <div className="font-semibold text-gray-900">{perimeterM ? `${metersToKm(perimeterM).toFixed(3)} km` : '-'}</div>
+              </div>
+              <div>
+                <div className="text-gray-500">Distance</div>
+                <div className="font-semibold text-gray-900">{distanceM ? `${metersToKm(distanceM).toFixed(3)} km` : '-'}</div>
+              </div>
             </div>
           </div>
-        </div>
-        <div className="px-4 pt-4">
-          <div className="flex border-b">
-            <button className={`px-3 py-2 text-sm ${activeTab === 'MEASURES' ? 'border-b-2 border-primary-500 text-primary-700' : 'text-gray-600'}`} onClick={() => setActiveTab('MEASURES')}>MEASURES</button>
-            <button className={`px-3 py-2 text-sm ${activeTab === 'GROUPS' ? 'border-b-2 border-primary-500 text-primary-700' : 'text-gray-600'}`} onClick={() => setActiveTab('GROUPS')}>GROUPS</button>
-          </div>
-          <div className="h-48 overflow-y-auto py-2">
-            {activeTab === 'MEASURES' ? (
-              measures.length ? (
-                <ul className="space-y-2">
-                  {measures.map((m) => (
-                    <li key={m.id}>
-                      <button onClick={() => loadMeasure(m)} className={`w-full text-left px-3 py-2 rounded-lg border ${selectedMeasureId === m.id ? 'border-primary-400 bg-primary-50' : 'border-gray-200 hover:bg-gray-50'}`}>
-                        <div className="flex items-center justify-between">
-                          <div className="font-medium text-gray-900">{m.name}</div>
-                          <div className="text-xs text-gray-500">{m.type}</div>
-                        </div>
-                        <div className="text-xs text-gray-600 mt-1">
-                          {m.type === 'AREA' && m.area_m2 ? `${m2ToHa(m.area_m2).toFixed(3)} ha, ${(m.perimeter_m ? metersToKm(m.perimeter_m) : 0).toFixed(3)} km` : m.type === 'DISTANCE' && m.distance_m ? `${metersToKm(m.distance_m).toFixed(3)} km` : m.type === 'POI' && m.point ? `${m.point.lat.toFixed(5)}, ${m.point.lng.toFixed(5)}` : ''}
-                        </div>
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <div className="text-sm text-gray-500 px-2">No measures yet. Create one below.</div>
-              )
-            ) : (
-              <ul className="space-y-2">
-                {groups.map((g) => (
-                  <li key={g.name} className="px-3 py-2 rounded-lg border border-gray-200 flex items-center justify-between">
-                    <div className="font-medium text-gray-900">{g.name}</div>
-                    <div className="text-xs text-gray-500">{g.count}</div>
-                  </li>
-                ))}
-              </ul>
+          <div className="px-4 pt-4">
+            <div className="flex items-center justify-between">
+              <div className="flex border-b flex-1">
+                <button className={`px-3 py-2 text-sm ${activeTab === 'MEASURES' ? 'border-b-2 border-primary-500 text-primary-700' : 'text-gray-600'}`} onClick={() => setActiveTab('MEASURES')}>MEASURES</button>
+                <button className={`px-3 py-2 text-sm ${activeTab === 'GROUPS' ? 'border-b-2 border-primary-500 text-primary-700' : 'text-gray-600'}`} onClick={() => setActiveTab('GROUPS')}>GROUPS</button>
+              </div>
+              <button
+                onClick={() => setIsHistoryDrawerOpen((open: boolean) => !open)}
+                className="ml-2 text-xs text-primary-700 hover:text-primary-800"
+              >
+                {isHistoryDrawerOpen ? 'Hide' : 'Show'}
+              </button>
+            </div>
+            {isHistoryDrawerOpen && (
+              <div className="h-48 overflow-y-auto py-2">
+                {activeTab === 'MEASURES' ? (
+                  measures.length ? (
+                    <ul className="space-y-2">
+                      {measures.map((m) => (
+                        <li key={m.id}>
+                          <button onClick={() => loadMeasure(m)} className={`w-full text-left px-3 py-2 rounded-lg border ${selectedMeasureId === m.id ? 'border-primary-400 bg-primary-50' : 'border-gray-200 hover:bg-gray-50'}`}>
+                            <div className="flex items-center justify-between">
+                              <div className="font-medium text-gray-900">{m.name}</div>
+                              <div className="text-xs text-gray-500">{m.type}</div>
+                            </div>
+                            <div className="text-xs text-gray-600 mt-1">
+                              {m.type === 'AREA' && m.area_m2 ? `${m2ToHa(m.area_m2).toFixed(3)} ha, ${(m.perimeter_m ? metersToKm(m.perimeter_m) : 0).toFixed(3)} km` : m.type === 'DISTANCE' && m.distance_m ? `${metersToKm(m.distance_m).toFixed(3)} km` : m.type === 'POI' && m.point ? `${m.point.lat.toFixed(5)}, ${m.point.lng.toFixed(5)}` : ''}
+                            </div>
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <div className="text-sm text-gray-500 px-2">No measures yet. Create one below.</div>
+                  )
+                ) : (
+                  <ul className="space-y-2">
+                    {groups.map((g) => (
+                      <li key={g.name} className="px-3 py-2 rounded-lg border border-gray-200 flex items-center justify-between">
+                        <div className="font-medium text-gray-900">{g.name}</div>
+                        <div className="text-xs text-gray-500">{g.count}</div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
             )}
           </div>
         </div>
-        <div className="mt-auto px-4 py-3 border-t flex items-center gap-2">
+        <div className="px-4 py-3 border-t flex items-center gap-2">
           <button
             onClick={() => {
               if (typeof (navigator as any).share === 'function') {
+                const pts = currentPointsRef.current;
                 const payload: any = {
                   name: measureName,
                   description,
                   group,
                   type: selectedType,
                 };
-                const pts = currentPointsRef.current;
                 if (selectedType === 'POI' && pts[0]) {
                   payload.point = { lat: pts[0].lat, lng: pts[0].lng };
                 } else if (pts.length) {
@@ -688,7 +709,7 @@ const FieldEstimationLeaflet: React.FC = () => {
         <div className="px-4 py-3 border-t">
           <div className="relative">
             <button
-              onClick={() => setIsMeasureDrawerOpen((open) => !open)}
+              onClick={() => setIsMeasureDrawerOpen((open: boolean) => !open)}
               className="w-full px-3 py-2 text-sm rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white shadow flex items-center justify-between"
             >
               <span>Measure</span>

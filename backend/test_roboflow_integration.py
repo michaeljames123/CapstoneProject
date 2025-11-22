@@ -12,7 +12,7 @@ import json
 
 # Set environment variables
 os.environ['ROBOFLOW_API_KEY'] = 'RlnFmttALS6BQzCy3M6d'
-os.environ['ROBOFLOW_MODEL_ID'] = 'agridroneinsightdetection-zcptl/1'
+os.environ['ROBOFLOW_MODEL_ID'] = 'agridroneinsightdetection-zcptl/4'
 
 def create_test_image():
     """Create a test crop field image for testing"""
@@ -54,7 +54,7 @@ def test_roboflow_client():
         test_image_path = create_test_image()
         
         # Test inference with exact model ID
-        model_id = "agridroneinsightdetection-zcptl/1"
+        model_id = "agridroneinsightdetection-zcptl/4"
         print(f"🔍 Running inference with model: {model_id}")
         
         result = CLIENT.infer(test_image_path, model_id=model_id)

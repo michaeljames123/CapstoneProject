@@ -40,7 +40,7 @@ def get_real_api_response():
         print("🌐 Getting real API response...")
         
         api_key = "RlnFmttALS6BQzCy3M6d"
-        model_id = "agridroneinsightdetection-zcptl/1"
+        model_id = "agridroneinsightdetection-zcptl/4"
         api_url = "https://serverless.roboflow.com"
         
         test_image_path = create_test_image()

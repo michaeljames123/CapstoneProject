@@ -14,19 +14,72 @@ type HistoryItem = {
 };
 
 const computeReadiness = (preds: any[] = []) => {
-  const total = preds.length || 0;
-  const healthy = preds.filter((p) => String(p.class || '').toLowerCase().includes('healthy')).length;
-  const disease = preds.filter((p) => {
-    const c = String(p.class || '').toLowerCase();
-    return c.includes('disease') || c.includes('infect') || c.includes('unhealthy') || c.includes('blight') || c.includes('mold') || c.includes('rot');
-  }).length;
-  const weeds = preds.filter((p) => String(p.class || '').toLowerCase().includes('weed')).length;
-  const pests = preds.filter((p) => String(p.class || '').toLowerCase().includes('pest')).length;
-  const avgConf = total > 0 ? preds.reduce((a, p) => a + (p.confidence || 0), 0) / total : 0;
-  const healthyRatio = total > 0 ? healthy / total : 0;
-  let score = (healthyRatio * 80) + (avgConf * 20);
-  const penalty = (disease * 8) + (weeds * 5) + (pests * 7);
-  return Math.max(0, Math.min(100, Math.round(score - penalty)));
+  if (!Array.isArray(preds) || preds.length === 0) return 0;
+
+  const polygonArea = (points: any[]): number => {
+    if (!Array.isArray(points) || points.length < 3) return 0;
+    let area = 0;
+    for (let i = 0, j = points.length - 1; i < points.length; j = i++) {
+      const p1 = points[j];
+      const p2 = points[i];
+      area += (p1.x + p2.x) * (p1.y - p2.y);
+    }
+    return Math.abs(area) / 2;
+  };
+
+  let healthyArea = 0;
+  let diseaseArea = 0;
+  let pestArea = 0;
+  let weedArea = 0;
+  let totalArea = 0;
+  let totalConf = 0;
+
+  preds.forEach((p) => {
+    const cls = String(p.class || '').toLowerCase();
+    let area = 0;
+    if (Array.isArray(p.points) && p.points.length >= 3) {
+      area = polygonArea(p.points);
+    } else if (p.width && p.height) {
+      area = Math.max(0, Number(p.width) * Number(p.height));
+    }
+
+    totalArea += area;
+    totalConf += p.confidence || 0;
+
+    if (cls.includes('healthy')) {
+      healthyArea += area;
+    } else if (cls.includes('pest')) {
+      pestArea += area;
+    } else if (cls.includes('weed')) {
+      weedArea += area;
+    } else if (
+      cls.includes('disease') ||
+      cls.includes('blight') ||
+      cls.includes('mildew') ||
+      cls.includes('mold') ||
+      cls.includes('rot') ||
+      cls.includes('infect')
+    ) {
+      diseaseArea += area;
+    }
+  });
+
+  if (totalArea <= 0) return 0;
+
+  const avgConf = totalConf / preds.length;
+  const healthyRatio = healthyArea / totalArea;
+  const diseaseRatio = diseaseArea / totalArea;
+  const pestRatio = pestArea / totalArea;
+  const weedRatio = weedArea / totalArea;
+
+  let score = healthyRatio * 100;
+  score -= diseaseRatio * 50;
+  score -= pestRatio * 40;
+  score -= weedRatio * 25;
+  score += (avgConf - 0.5) * 30;
+  score = Math.max(0, Math.min(100, score));
+
+  return Math.round(score);
 };
 
 const Dashboard: React.FC = () => {

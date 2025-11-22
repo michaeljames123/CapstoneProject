@@ -40,7 +40,7 @@ def test_roboflow_api_methods():
     
     # API configuration - exact from user's specification
     api_key = "RlnFmttALS6BQzCy3M6d"
-    model_id = "agridroneinsightdetection-zcptl/1"
+    model_id = "agridroneinsightdetection-zcptl/4"
     base_url = "https://detect.roboflow.com"  # Try different endpoint
     
     print(f"🧪 Testing Roboflow API with image: {image_path}")

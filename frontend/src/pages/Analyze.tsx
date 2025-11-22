@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import api from '../api/config';
 
 interface AnalysisResult {
@@ -33,6 +33,13 @@ const Analyze: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [isViewerOpen, setIsViewerOpen] = useState(false);
   const [harvestReadiness, setHarvestReadiness] = useState<{ percent: number; basis: string; recommendations: string[] }>({ percent: 0, basis: '', recommendations: [] });
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  const handleChangeImageClick = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
 
   const handleUseCurrentLocation = () => {
     if (!navigator.geolocation) {
@@ -56,35 +63,115 @@ const Analyze: React.FC = () => {
   const computeHarvestInsights = (result: AnalysisResult) => {
     try {
       const preds = result.analysis_result?.predictions || [];
-      const total = preds.length || 0;
-      const healthy = preds.filter((p: any) => String(p.class || '').toLowerCase().includes('healthy')).length;
-      const disease = preds.filter((p: any) => {
-        const c = String(p.class || '').toLowerCase();
-        return c.includes('disease') || c.includes('infect') || c.includes('unhealthy') || c.includes('blight') || c.includes('mold') || c.includes('rot');
-      }).length;
-      const weeds = preds.filter((p: any) => String(p.class || '').toLowerCase().includes('weed')).length;
-      const pests = preds.filter((p: any) => String(p.class || '').toLowerCase().includes('pest')).length;
+      if (!Array.isArray(preds) || preds.length === 0) {
+        return {
+          percent: 0,
+          basis: 'No crop regions detected in this image. Unable to estimate harvest readiness.',
+          recommendations: ['Capture a higher-resolution image that clearly contains the crop field and re-run the analysis.'],
+        };
+      }
 
-      const avgConf = total > 0 ? (preds.reduce((acc: number, p: any) => acc + (p.confidence || 0), 0) / total) : 0;
-      const healthyRatio = total > 0 ? healthy / total : 0;
+      const polygonArea = (points: any[]): number => {
+        if (!Array.isArray(points) || points.length < 3) return 0;
+        let area = 0;
+        for (let i = 0, j = points.length - 1; i < points.length; j = i++) {
+          const p1 = points[j];
+          const p2 = points[i];
+          area += (p1.x + p2.x) * (p1.y - p2.y);
+        }
+        return Math.abs(area) / 2;
+      };
 
-      let score = (healthyRatio * 80) + (avgConf * 20);
-      const penalty = (disease * 8) + (weeds * 5) + (pests * 7);
-      score = Math.max(0, Math.min(100, score - penalty));
+      let healthyArea = 0;
+      let diseaseArea = 0;
+      let pestArea = 0;
+      let weedArea = 0;
+      let healthyCount = 0;
+      let diseaseCount = 0;
+      let pestCount = 0;
+      let weedCount = 0;
 
-      const basis = `Based on ${total} detections: ${healthy} healthy, ${disease} disease, ${weeds} weeds, ${pests} pests. Avg confidence ${(avgConf*100).toFixed(1)}%. Healthy ratio ${(healthyRatio*100).toFixed(1)}%.`;
+      let totalArea = 0;
+      let totalConf = 0;
+
+      preds.forEach((p: any) => {
+        const cls = String(p.class || '').toLowerCase();
+        let area = 0;
+        if (Array.isArray(p.points) && p.points.length >= 3) {
+          area = polygonArea(p.points);
+        } else if (p.width && p.height) {
+          area = Math.max(0, Number(p.width) * Number(p.height));
+        }
+
+        totalArea += area;
+        totalConf += p.confidence || 0;
+
+        if (cls.includes('healthy')) {
+          healthyArea += area;
+          healthyCount += 1;
+        } else if (cls.includes('pest')) {
+          pestArea += area;
+          pestCount += 1;
+        } else if (cls.includes('weed')) {
+          weedArea += area;
+          weedCount += 1;
+        } else if (
+          cls.includes('disease') ||
+          cls.includes('blight') ||
+          cls.includes('mildew') ||
+          cls.includes('mold') ||
+          cls.includes('rot') ||
+          cls.includes('infect')
+        ) {
+          diseaseArea += area;
+          diseaseCount += 1;
+        }
+      });
+
+      if (totalArea <= 0) {
+        return {
+          percent: 0,
+          basis: 'Detections found but with negligible area. Unable to compute a reliable readiness score.',
+          recommendations: ['Re-fly the field at a consistent altitude and ensure the crop area fills most of the frame.'],
+        };
+      }
+
+      const avgConf = totalConf / preds.length;
+      const healthyRatio = healthyArea / totalArea;
+      const diseaseRatio = diseaseArea / totalArea;
+      const pestRatio = pestArea / totalArea;
+      const weedRatio = weedArea / totalArea;
+
+      let score = healthyRatio * 100;
+      score -= diseaseRatio * 50;
+      score -= pestRatio * 40;
+      score -= weedRatio * 25;
+      score += (avgConf - 0.5) * 30; // confidence slightly boosts or reduces score
+      score = Math.max(0, Math.min(100, score));
+
+      const toPct = (value: number) => (value * 100).toFixed(1);
+
+      const basis = `Using relative area of detected regions (~100% total): Healthy ${toPct(healthyRatio)}%, disease ${toPct(diseaseRatio)}%, pests ${toPct(pestRatio)}%, weeds ${toPct(weedRatio)}%. ` +
+        `Detected ${preds.length} regions: ${healthyCount} healthy, ${diseaseCount} disease (including Downy Mildew and leaf blights), ${pestCount} pest, ${weedCount} weed. ` +
+        `Average model confidence ${(avgConf * 100).toFixed(1)}%.`;
 
       const recs: string[] = [];
-      if (score >= 85 && disease === 0 && pests === 0 && weeds <= 1) {
-        recs.push('Field appears harvest-ready within 3–7 days. Confirm with ground truth checks.');
+      if (score >= 85 && diseaseRatio < 0.05 && pestRatio < 0.03 && weedRatio < 0.05) {
+        recs.push('Field appears harvest-ready within 3–7 days. Confirm with on-ground checks on a few sample points.');
       } else if (score >= 70) {
-        recs.push('Monitor for 5–10 days. Spot-check borderline areas before scheduling harvest.');
+        recs.push('Field is approaching harvest-ready. Monitor for 5–10 days and re-fly to confirm trends before scheduling harvest.');
       } else {
-        recs.push('Not harvest-ready. Address issues and reassess in 7–14 days.');
+        recs.push('Field is not harvest-ready. Focus on correcting disease, pest, or weed issues, then reassess in 7–14 days.');
       }
-      if (disease > 0) recs.push('Apply disease management: remove infected areas and consider fungicide per agronomist advice.');
-      if (pests > 0) recs.push('Deploy pest control measures and re-fly in 3–5 days to measure impact.');
-      if (weeds > 0) recs.push('Targeted weeding/spot spraying to reduce competition and improve maturity uniformity.');
+      if (diseaseRatio > 0) {
+        recs.push('Diseased regions detected (e.g., Downy Mildew Disease). Consider targeted fungicide or removal of heavily infected patches.');
+      }
+      if (pestRatio > 0) {
+        recs.push('Pest-affected areas detected. Deploy pest control and re-fly in 3–5 days to verify improvement.');
+      }
+      if (weedRatio > 0) {
+        recs.push('Weed pressure detected. Plan targeted weeding or spot spraying to reduce competition.');
+      }
 
       return { percent: Math.round(score), basis, recommendations: recs };
     } catch (e) {
@@ -296,7 +383,7 @@ const Analyze: React.FC = () => {
 
               <div>
                 <label htmlFor="location" className="block text-sm font-medium text-gray-700 mb-2">
-                  Exact Location *
+                  Address *
                 </label>
                 <input
                   type="text"
@@ -305,14 +392,17 @@ const Analyze: React.FC = () => {
                   value={formData.location}
                   onChange={handleInputChange}
                   className="input-field"
-                  placeholder="GPS coordinates or address"
+                  placeholder="Farm address (barangay, municipality, province)"
                   required
                 />
+                <p className="mt-1 text-xs text-gray-500">
+                  Use a descriptive field address so it is easy to locate this flight later.
+                </p>
               </div>
 
               <div>
                 <label htmlFor="field_size" className="block text-sm font-medium text-gray-700 mb-2">
-                  Field Size (acres) *
+                  Field Size (hectares) *
                 </label>
                 <input
                   type="number"
@@ -326,6 +416,9 @@ const Analyze: React.FC = () => {
                   step="0.1"
                   required
                 />
+                <p className="mt-1 text-xs text-gray-500">
+                  Enter the approximate field size in hectares (ha) for better context in reports.
+                </p>
               </div>
 
               <div>
@@ -393,6 +486,7 @@ const Analyze: React.FC = () => {
                     onChange={handleFileChange}
                     className="sr-only"
                     id="image-upload"
+                    ref={fileInputRef}
                   />
                   {!imagePreview ? (
                     <label htmlFor="image-upload" className="cursor-pointer">
@@ -425,6 +519,15 @@ const Analyze: React.FC = () => {
                           </span>
                         </div>
                       </label>
+                      <div className="mt-3 flex justify-center">
+                        <button
+                          type="button"
+                          onClick={handleChangeImageClick}
+                          className="btn-secondary text-sm"
+                        >
+                          Change Image
+                        </button>
+                      </div>
                       {selectedFile && (
                         <div className="mt-2 p-2 bg-primary-50 rounded text-center">
                           <div className="text-xs text-primary-700">
@@ -561,7 +664,7 @@ const Analyze: React.FC = () => {
                             style={{ maxHeight: '80vh' }}
                             onClick={() => setIsViewerOpen(true)}
                           />
-                          <div className="absolute top-3 right-3 flex gap-2">
+                          <div className="absolute bottom-3 right-3 flex gap-2">
                             <button
                               type="button"
                               onClick={() => setIsViewerOpen(true)}

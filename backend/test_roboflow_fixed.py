@@ -73,7 +73,7 @@ def test_correct_roboflow_api():
     
     # API configuration
     api_key = "RlnFmttALS6BQzCy3M6d"
-    model_id = "agridroneinsightdetection-zcptl/1"
+    model_id = "agridroneinsightdetection-zcptl/4"
     
     # Try the correct serverless endpoint (from user's original specification)
     print("\n🎯 TESTING: serverless.roboflow.com (from user spec)")

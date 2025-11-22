@@ -44,7 +44,7 @@ def test_multipart_api():
         
         # User's exact credentials
         api_key = "RlnFmttALS6BQzCy3M6d"
-        model_id = "agridroneinsightdetection-zcptl/1"
+        model_id = "agridroneinsightdetection-zcptl/4"
         api_url = "https://serverless.roboflow.com"
         
         # Create test image
@@ -101,7 +101,7 @@ def test_base64_api():
         
         # User's exact credentials
         api_key = "RlnFmttALS6BQzCy3M6d"
-        model_id = "agridroneinsightdetection-zcptl/1"
+        model_id = "agridroneinsightdetection-zcptl/4"
         api_url = "https://serverless.roboflow.com"
         
         # Create test image

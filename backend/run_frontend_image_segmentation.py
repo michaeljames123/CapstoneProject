@@ -13,7 +13,7 @@ def main():
 
     # After loading env, make sure the imported app module sees the values
     app.ROBOFLOW_API_KEY = os.getenv("ROBOFLOW_API_KEY") or "RlnFmttALS6BQzCy3M6d"
-    model_id = os.getenv("ROBOFLOW_MODEL_ID") or "agridroneinsightdetection-zcptl/1"
+    model_id = os.getenv("ROBOFLOW_MODEL_ID") or "agridroneinsightdetection-zcptl/4"
 
     # Absolute path provided by you (fallback to relative if needed)
     abs_image_path = r"c:\\Users\\ADMIN\\Desktop\\bb project\\Capstoneproject\\frontend\\aerial-view-of-corn-fields-photo.jpg"
