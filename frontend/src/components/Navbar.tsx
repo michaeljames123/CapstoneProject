@@ -2,7 +2,6 @@ import React from 'react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useSidebar } from '../contexts/SidebarContext';
-import DroneLogo from './DroneLogo';
 
 const Navbar: React.FC = () => {
   const { user, logout } = useAuth();
@@ -26,10 +25,12 @@ const Navbar: React.FC = () => {
           {/* Left: Logo */}
           <div className="flex items-center">
             <Link to="/" className="flex items-center space-x-2">
-              <div className="w-9 h-9 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-center shadow-sm">
-                <DroneLogo className="w-6 h-6 text-emerald-600" />
-              </div>
-              <span className="text-xl font-bold text-gray-900">AgridroneInsight</span>
+              <img
+                src="/AgriDroneScan.png"
+                alt="AgriDroneScan"
+                className="h-8 md:h-9 object-contain"
+              />
+              <span className="text-xl font-bold text-gray-900">AgriDroneScan</span>
             </Link>
           </div>
 

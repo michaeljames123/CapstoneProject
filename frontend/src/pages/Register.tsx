@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import DroneLogo from '../components/DroneLogo';
 
 const Register: React.FC = () => {
   const [formData, setFormData] = useState({
@@ -46,11 +45,15 @@ const Register: React.FC = () => {
       <div className="max-w-md w-full space-y-8">
         <div className="card card-hover">
           <div className="text-center mb-8 flex flex-col items-center">
-            <div className="mb-4 w-14 h-14 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-center justify-center shadow-sm">
-              <DroneLogo className="w-8 h-8 text-emerald-600" />
-            </div>
-            <h2 className="text-3xl font-bold text-gray-900">Sign Up</h2>
-            <p className="mt-2 text-gray-600">Join AgridroneInsight today</p>
+            <img
+              src="/AgriDroneScan.png"
+              alt="AgriDroneScan"
+              className="h-10 md:h-11 mb-3 object-contain"
+            />
+            <h2 className="text-3xl font-extrabold bg-gradient-to-r from-[#2E7D32] via-[#43A047] to-[#7CB342] bg-clip-text text-transparent">
+              Sign Up
+            </h2>
+            <p className="mt-2 text-gray-600">Join AgriDroneScan today</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
