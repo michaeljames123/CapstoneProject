@@ -294,6 +294,44 @@ const Analyze: React.FC = () => {
     }
   };
 
+  const handleDownloadImage = async () => {
+    try {
+      if (!analysisResult) {
+        setError('No analysis result available to download.');
+        return;
+      }
+
+      const imagePath = analysisResult.annotated_image_url || analysisResult.original_image_url;
+      if (!imagePath) {
+        setError('No image available to download.');
+        return;
+      }
+
+      const baseUrl = String((api.defaults.baseURL || '')).replace(/\/$/, '');
+      const url = `${baseUrl}${imagePath}`;
+
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`Download failed with status ${response.status}`);
+      }
+
+      const blob = await response.blob();
+      const blobUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      const filename = imagePath.split('/').pop() || 'analysis-image.jpg';
+
+      link.href = blobUrl;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(blobUrl);
+    } catch (err) {
+      console.error('Download error:', err);
+      setError('Failed to download image. Please try again.');
+    }
+  };
+
   const resetForm = () => {
     setFormData({
       drone_name: '',
@@ -672,13 +710,13 @@ const Analyze: React.FC = () => {
                             >
                               View Fullscreen
                             </button>
-                            <a
-                              href={`${String((api.defaults.baseURL || '')).replace(/\/$/, '')}${analysisResult.annotated_image_url || analysisResult.original_image_url}`}
-                              download
+                            <button
+                              type="button"
+                              onClick={handleDownloadImage}
                               className="btn-primary"
                             >
                               Download
-                            </a>
+                            </button>
                           </div>
                         </div>
                       </div>

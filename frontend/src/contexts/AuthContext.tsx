@@ -41,12 +41,21 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const token = localStorage.getItem('access_token');
-    if (token) {
-      // Token is handled automatically by api interceptor
-      // You might want to validate the token here
+    try {
+      const token = localStorage.getItem('access_token');
+      const storedUser = localStorage.getItem('user');
+
+      if (token && storedUser) {
+        try {
+          const parsedUser: User = JSON.parse(storedUser);
+          setUser(parsedUser);
+        } catch {
+          localStorage.removeItem('user');
+        }
+      }
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
   }, []);
 
   const login = async (username: string, password: string): Promise<void> => {
@@ -55,6 +64,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       const { access_token, user: userData } = response.data;
       
       localStorage.setItem('access_token', access_token);
+      localStorage.setItem('user', JSON.stringify(userData));
       // Token is handled automatically by api interceptor
       setUser(userData);
     } catch (error: any) {
@@ -68,6 +78,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       const { access_token, user: userData } = response.data;
       
       localStorage.setItem('access_token', access_token);
+      localStorage.setItem('user', JSON.stringify(userData));
       // Token is handled automatically by api interceptor
       setUser(userData);
     } catch (error: any) {
@@ -77,6 +88,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   const logout = () => {
     localStorage.removeItem('access_token');
+    localStorage.removeItem('user');
       // Token removal is handled automatically by api interceptor
     setUser(null);
   };
