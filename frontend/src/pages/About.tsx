@@ -1,17 +1,28 @@
 import React from 'react';
 
 const About: React.FC = () => {
+  const demoSectionRef = React.useRef<HTMLDivElement | null>(null);
+
+  const handleScrollToDemo = () => {
+    if (demoSectionRef.current) {
+      demoSectionRef.current.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start',
+      });
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
-      <section className="relative py-16 sm:py-20 animate-fade-in overflow-hidden">
+      <section className="relative py-16 sm:py-20 lg:py-24 animate-fade-in overflow-hidden">
         <div className="absolute inset-0 bg-grid-soft"></div>
         <div
           className="absolute inset-0"
           style={{
             backgroundImage:
-              "url(https://images.unsplash.com/photo-1517740772437-9d8890a16b51?auto=format&fit=crop&w=1600&q=80)",
-            backgroundSize: "cover",
-            backgroundPosition: "center",
+              'url(https://images.unsplash.com/photo-1517740772437-9d8890a16b51?auto=format&fit=crop&w=1600&q=80)',
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
             opacity: 0.35,
           }}
         ></div>
@@ -21,9 +32,52 @@ const About: React.FC = () => {
         <div className="absolute top-12 right-10 icon-bubble animate-float">
           <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2l4 4-4 4-4-4 4-4z"/></svg>
         </div>
-        <div className="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">About AgridroneInsight</h1>
-          <p className="text-xl text-gray-700">Revolutionizing agriculture through AI-powered drone analysis</p>
+        <div className="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="bg-white/80 backdrop-blur-xl rounded-3xl shadow-xl border border-emerald-100 p-8 md:p-10 flex flex-col md:flex-row items-center gap-8 transform transition duration-500 hover:-translate-y-1 hover:shadow-2xl">
+            <div className="flex-1 text-center md:text-left">
+              <p className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-100 mb-3">
+                AI disease detection
+              </p>
+              <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-3">
+                Spot stress and disease early
+              </h1>
+              <p className="text-lg md:text-xl text-gray-700 mb-3">
+                AI highlights problem areas in minutes, not days.
+              </p>
+              <p className="text-base md:text-lg text-gray-600">
+                Our detection models are tuned for real-world farm conditions, giving you a fast visual map of risk zones.
+              </p>
+              <div className="mt-6 flex flex-wrap gap-3 justify-center md:justify-start">
+                <button
+                  onClick={handleScrollToDemo}
+                  className="inline-flex items-center px-5 py-3 rounded-full bg-emerald-600 text-white text-sm font-semibold shadow-lg hover:bg-emerald-700 hover:-translate-y-0.5 hover:shadow-xl transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500"
+                >
+                  <span className="mr-2">View Drone Demo</span>
+                  <svg
+                    className="w-4 h-4"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <polygon points="5 3 19 12 5 21 5 3" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+            <div className="flex-1 w-full">
+              <div className="relative w-full aspect-video rounded-2xl overflow-hidden shadow-lg border border-emerald-100 bg-gray-100">
+                <img
+                  src="/AgriDroneScan.png"
+                  alt="AgriDroneScan"
+                  className="w-full h-full object-contain"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/10 via-transparent to-emerald-500/10 mix-blend-multiply"></div>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
@@ -32,7 +86,7 @@ const About: React.FC = () => {
           <div>
             <h2 className="text-3xl font-bold text-gray-900 mb-6">Our Mission</h2>
             <p className="text-lg text-gray-600 mb-4">
-              AgridroneInsight empowers farmers and agricultural professionals with cutting-edge AI technology 
+              AgriDroneScan empowers farmers and agricultural professionals with cutting-edge AI technology 
               to monitor crop health, detect diseases, and optimize yields through advanced drone imagery analysis.
             </p>
             <p className="text-lg text-gray-600">
@@ -104,6 +158,131 @@ const About: React.FC = () => {
                   <li>• SQLite database</li>
                   <li>• Secure user authentication</li>
                 </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div
+          ref={demoSectionRef}
+          id="drone-demo"
+          className="card mt-10 animate-fade-in"
+        >
+          <div className="mb-6 text-center">
+            <h2 className="text-3xl font-bold text-gray-900 mb-2">Drone-to-System Demonstration for Field Estimation</h2>
+            <p className="text-gray-600 max-w-2xl mx-auto">
+              This demonstration shows how a drone flight is transformed into a clear, color-coded field map. From image capture, to AI analysis, to estimating affected areas, every step is visible and easy to understand.
+            </p>
+          </div>
+          <div className="grid md:grid-cols-2 gap-10 items-start">
+            <div>
+              <h3 className="text-xl font-semibold text-gray-900 mb-3">From flight to actionable insights</h3>
+              <p className="text-gray-600 mb-4">
+                The demo walks through the real workflow used in the field: capturing overlapping drone images, uploading them to AgriDroneScan, running AI models, and visualizing the results as field-level estimates.
+              </p>
+              <ul className="space-y-2 text-gray-700 list-disc list-inside">
+                <li>Drone captures high-resolution, geo-referenced images over your corn field.</li>
+                <li>Images are uploaded to the platform and prepared for AI analysis.</li>
+                <li>Our models detect disease symptoms, stress patterns, and gaps in plant density.</li>
+                <li>Detected areas are aggregated into a field map with estimated affected zones and severity.</li>
+              </ul>
+              <p className="mt-4 text-sm text-gray-500">
+                The same pipeline powers our real deployments, so what you see in the demo is exactly how your own fields can be analyzed.
+              </p>
+            </div>
+            <div className="grid sm:grid-cols-2 gap-4">
+              <div className="card-hover rounded-2xl border border-emerald-100 bg-emerald-50/60 p-4 transition-transform duration-300 hover:-translate-y-1 hover:shadow-lg">
+                <div className="flex items-center mb-3">
+                  <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center mr-3">
+                    <svg
+                      className="w-5 h-5 text-emerald-600"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <rect x="8" y="8" width="8" height="8" rx="2" />
+                      <path d="M3 9h3M3 15h3M18 9h3M18 15h3M9 3v3M15 3v3M9 18v3M15 18v3" />
+                    </svg>
+                  </div>
+                  <h4 className="font-semibold text-gray-900">1. Drone flight & capture</h4>
+                </div>
+                <p className="text-sm text-gray-700">
+                  Plan the route and fly over the field. The drone records overlapping images that cover the entire area for accurate estimation.
+                </p>
+              </div>
+              <div className="card-hover rounded-2xl border border-emerald-100 bg-emerald-50/60 p-4 transition-transform duration-300 hover:-translate-y-1 hover:shadow-lg">
+                <div className="flex items-center mb-3">
+                  <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center mr-3">
+                    <svg
+                      className="w-5 h-5 text-emerald-600"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M16 16v-3h-3" />
+                      <path d="M8 8v3h3" />
+                      <circle cx="12" cy="12" r="9" />
+                      <polyline points="16 8 16 4 20 4" />
+                      <polyline points="8 16 8 20 4 20" />
+                    </svg>
+                  </div>
+                  <h4 className="font-semibold text-gray-900">2. Upload to the system</h4>
+                </div>
+                <p className="text-sm text-gray-700">
+                  Images are uploaded to AgriDroneScan via the dashboard. Each file keeps its location and time, which is later used for mapping.
+                </p>
+              </div>
+              <div className="card-hover rounded-2xl border border-emerald-100 bg-emerald-50/60 p-4 transition-transform duration-300 hover:-translate-y-1 hover:shadow-lg">
+                <div className="flex items-center mb-3">
+                  <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center mr-3">
+                    <svg
+                      className="w-5 h-5 text-emerald-600"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <rect x="4" y="4" width="16" height="16" rx="3" />
+                      <path d="M9 9h1M14 9h1M10 15h4" />
+                    </svg>
+                  </div>
+                  <h4 className="font-semibold text-gray-900">3. AI analysis & detection</h4>
+                </div>
+                <p className="text-sm text-gray-700">
+                  Our models scan every pixel to detect disease symptoms, color stress, and missing plants, then score the severity per area.
+                </p>
+              </div>
+              <div className="card-hover rounded-2xl border border-emerald-100 bg-emerald-50/60 p-4 transition-transform duration-300 hover:-translate-y-1 hover:shadow-lg">
+                <div className="flex items-center mb-3">
+                  <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center mr-3">
+                    <svg
+                      className="w-5 h-5 text-emerald-600"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <rect x="3" y="3" width="7" height="7" rx="1.5" />
+                      <rect x="14" y="3" width="7" height="7" rx="1.5" />
+                      <rect x="3" y="14" width="7" height="7" rx="1.5" />
+                      <path d="M14 17h7M17.5 14.5v5" />
+                    </svg>
+                  </div>
+                  <h4 className="font-semibold text-gray-900">4. Field estimation & decisions</h4>
+                </div>
+                <p className="text-sm text-gray-700">
+                  The system combines detections into a field map, estimates the area affected, and highlights where to scout or treat first.
+                </p>
               </div>
             </div>
           </div>
